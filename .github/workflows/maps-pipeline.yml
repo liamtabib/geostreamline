@@ -1,0 +1,51 @@
+name: Google Maps Data Pipeline
+
+permissions:
+  id-token: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      gcs_path_pattern:
+        description: 'GCS path pattern for input data'
+        required: false
+        default: 'maps_data/*/*.parquet'
+        type: string
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6 AM
+    
+jobs:
+  run-maps-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        
+      - name: Install dependencies
+        run: |
+          uv sync
+          
+      - id: 'auth'
+        name: 'Authenticate to GCP'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ secrets.GCP_SECRETS }}'
+
+      - name: Run Dagster pipeline
+        env:
+          GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GCS_BUCKET: ${{ secrets.GCS_BUCKET }}
+          GCS_PATH_PATTERN: ${{ github.event.inputs.gcs_path_pattern || 'maps_data/*/*.parquet' }}
+          BQ_DATASET: maps_data
+          BQ_TABLE: raw_maps_data
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
+        run: |
+          uv run dagster job execute --job=maps_pipeline

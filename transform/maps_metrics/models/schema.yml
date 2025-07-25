@@ -1,0 +1,39 @@
+version: 2
+
+models:
+  - name: stg_maps_data
+    description: Cleaned and structured Maps API data
+    columns:
+      - name: place_id
+        description: Unique Google Places ID
+        tests:
+          - not_null
+      - name: latitude
+        description: Latitude coordinate
+        tests:
+          - not_null
+      - name: longitude  
+        description: Longitude coordinate
+        tests:
+          - not_null
+
+  - name: maps_daily_summary
+    description: Daily aggregated metrics by query
+    columns:
+      - name: query_date
+        description: Date of queries
+        tests:
+          - not_null
+      - name: total_results
+        description: Total number of results found
+        tests:
+          - not_null
+
+  - name: maps_location_analysis
+    description: Detailed location analysis with geographic context
+    columns:
+      - name: place_id
+        description: Unique Google Places ID
+        tests:
+          - unique
+          - not_null

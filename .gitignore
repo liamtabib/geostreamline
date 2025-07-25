@@ -1,0 +1,65 @@
+# Environment variables (NEVER commit secrets)
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+**/*.py[cod]
+*$py.class
+**/*$py.class
+*.pyc
+.pytest_cache
+.ruff_cache
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Google Cloud credentials (NEVER commit these)
+*.json
+!place_ids.json
+
+# Data files
+*.duckdb
+*.wal
+
+# dbt
+transform/maps_metrics/target/
+transform/maps_metrics/dbt_packages/
+transform/maps_metrics/logs/
+target/
+dbt_packages/
+logs/
+
+# Dagster
+.dagster/
+.dagster_home/
+
+# Dashboard (evidence)
+**/.ddb
+**/node_modules
+**/.evidence
+**/connection.options.yaml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+

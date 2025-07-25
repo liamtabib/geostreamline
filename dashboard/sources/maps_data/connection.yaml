@@ -1,0 +1,6 @@
+# Maps pipeline BigQuery connection
+name: bigquery
+type: bigquery
+project_id: "${GCP_PROJECT}"
+keyfile: "${GOOGLE_APPLICATION_CREDENTIALS}"
+dataset: "maps_data"
