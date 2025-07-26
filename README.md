@@ -172,6 +172,52 @@ The pipeline supports rich analytics through:
 3. **Time Series Analysis**: Track changes over time
 4. **City Comparisons**: Cross-city analytics
 
+### Evidence Dashboard Kiosk Mode
+
+The dashboard is configured for clean kiosk display with all Evidence.dev development UI elements stripped away.
+
+#### Global Layout Override
+
+The `dashboard/pages/+layout.svelte` file globally hides all dev-time UI:
+
+```svelte
+<EvidenceDefaultLayout
+  {data}
+  hideSidebar={true}
+  hideHeader={true}
+  neverShowQueries={true}
+>
+  <slot slot="content" />
+</EvidenceDefaultLayout>
+```
+
+#### Dashboard Development
+
+```bash
+# Navigate to dashboard directory
+cd dashboard
+
+# Install dependencies
+npm install
+
+# Start development server (clean kiosk mode)
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+#### Production Deployment
+
+1. Build the static site: `npm run build`
+2. Serve the `/build` directory using any static web server
+3. **Never** run `evidence dev` in production
+
+The build output is completely static and contains no dev-time UI elements.
+
 ## 🔒 Security
 
 - ✅ Environment variables for all secrets
