@@ -1,177 +1,158 @@
 ---
-title: Google Maps Pipeline Dashboard 📍
+sidebar: never
+hide_header: true
+title: "KPI Dashboard"
 ---
 
-# Google Maps Pipeline Dashboard 
+# Maps Excellence Dashboard
 
-This dashboard shows insights from Google Maps API geocoding data processed through our data pipeline.
+Tracking excellence metrics for cafes and restaurants across European cities using Google Area Insights API data.
 
-## Query Summary
-
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 <BigValue 
-    title='Total Queries Today'
-    data={queries_today} 
-    value='total_queries' 
+    title='Cities Analyzed'
+    data={city_count} 
+    value='total_cities' 
     fmt='#,##0'	
 />
 
 <BigValue 
-    title='Unique Places Found'
-    data={unique_places} 
-    value='place_count' 
+    title='Total Places'
+    data={total_places} 
+    value='total_count' 
     fmt='#,##0'	
 />
 
 <BigValue 
-    title='API Success Rate'
-    data={api_success_rate} 
-    value='success_rate' 
+    title='Average Excellence'
+    data={avg_excellence} 
+    value='avg_excellence_percentage' 
     fmt='#0.0%'	
 />
 
 <BigValue 
-  title='Data last updated'
+  title='Last Updated'
   data={last_updated} 
-  value=max_timestamp
+  value=readable_timestamp
 />
+</div>
 
-## Query Activity Over Time
+## Excellence Rankings
 
-<LineChart 
-  data={daily_activity} 
-  x=query_date 
-  y=total_results
-  series=query
-  title="Daily Query Results by Search Term"
-/>
-
-## Geographic Distribution
-
-<ScatterPlot 
-  data={location_data} 
-  x=longitude 
-  y=latitude 
-  series=query
-  size=10
-  title="Geographic Distribution of Results"
-/>
-
-## Query Performance
-
-<Grid cols=2>
-<DataTable 
-  data={query_summary} 
-  title="Query Summary"
-  search=false
->
-    <Column id="query" title="Search Query"/>
-    <Column id="total_results" title="Total Results" />
-    <Column id="unique_places" title="Unique Places" />
-    <Column id="avg_latitude" title="Avg Latitude" fmt="#0.000"/>
-    <Column id="avg_longitude" title="Avg Longitude" fmt="#0.000"/>
-</DataTable>
-
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+<div class="chart-container">
 <BarChart 
-    data={query_summary}
-    x=query
-    y=total_results
-    title="Results by Query"
+    data={cafe_rankings}
+    x=city
+    y=excellence_percentage
+    title="Cafe Excellence by City"
+    yFmt='#0.0%'
     swapXY=true
 />
-</Grid>
+</div>
 
-## Recent Locations
+<div class="chart-container">
+<BarChart 
+    data={restaurant_rankings}
+    x=city
+    y=excellence_percentage
+    title="Restaurant Excellence by City"
+    yFmt='#0.0%'
+    swapXY=true
+/>
+</div>
+</div>
 
+## Detailed Analysis
+
+<div class="dashboard-section">
 <DataTable 
-  data={recent_locations} 
-  rows=20
-  title="Latest Geocoded Locations"
+  data={detailed_metrics} 
+  search=true
+  class="evidence-table"
 >
-    <Column id="query" title="Query"/>
-    <Column id="formatted_address" title="Address"/>
-    <Column id="latitude" title="Latitude" fmt="#0.0000"/>
-    <Column id="longitude" title="Longitude" fmt="#0.0000"/>
-    <Column id="timestamp" title="Timestamp"/>
+    <Column id="city" title="City"/>
+    <Column id="place_type_display" title="Type"/>
+    <Column id="total_count" title="Total Places" fmt='#,##0'/>
+    <Column id="excellent_count" title="Excellent Places" fmt='#,##0'/>
+    <Column id="excellence_percentage" title="Excellence %" fmt='#0.0%'/>
+    <Column id="excellence_rank" title="Rank"/>
 </DataTable>
+</div>
 
-```sql queries_today
-SELECT COUNT(*) as total_queries
-FROM maps_daily_summary
-WHERE query_date = CURRENT_DATE()
+```sql city_count
+SELECT COUNT(DISTINCT city) as total_cities
+FROM dashboard_data.dashboard_metrics
 ```
 
-```sql unique_places
-SELECT COUNT(DISTINCT place_id) as place_count
-FROM maps_location_analysis
+```sql total_places
+SELECT SUM(total_count) as total_count
+FROM dashboard_data.dashboard_metrics
 ```
 
-```sql api_success_rate
-SELECT 
-    COUNT(CASE WHEN place_id IS NOT NULL THEN 1 END) * 1.0 / COUNT(*) as success_rate
-FROM maps_location_analysis
+```sql avg_excellence
+SELECT AVG(excellence_percentage / 100.0) as avg_excellence_percentage
+FROM dashboard_data.dashboard_metrics
+WHERE excellence_percentage IS NOT NULL
 ```
 
 ```sql last_updated
-SELECT MAX(timestamp) as max_timestamp
-FROM maps_location_analysis
+SELECT MAX(readable_timestamp) as readable_timestamp
+FROM dashboard_data.dashboard_metrics
 ```
 
-```sql daily_activity
+```sql cafe_rankings
 SELECT 
-    query_date,
-    query,
-    total_results
-FROM maps_daily_summary
-ORDER BY query_date DESC
-LIMIT 30
+    city,
+    excellence_percentage / 100.0 as excellence_percentage,
+    excellence_rank
+FROM dashboard_data.dashboard_metrics
+WHERE place_type = 'cafe'
+ORDER BY excellence_percentage DESC
 ```
 
-```sql location_data
+```sql restaurant_rankings
 SELECT 
-    latitude,
-    longitude,
-    query,
-    formatted_address
-FROM maps_location_analysis
-WHERE latitude IS NOT NULL 
-  AND longitude IS NOT NULL
+    city,
+    excellence_percentage / 100.0 as excellence_percentage,
+    excellence_rank
+FROM dashboard_data.dashboard_metrics
+WHERE place_type = 'restaurant'
+ORDER BY excellence_percentage DESC
 ```
 
-```sql query_summary
+```sql detailed_metrics
 SELECT 
-    query,
-    total_results,
-    unique_places,
-    avg_latitude,
-    avg_longitude
-FROM maps_daily_summary
-WHERE query_date >= CURRENT_DATE() - INTERVAL '7 days'
-ORDER BY total_results DESC
+    city,
+    place_type_display,
+    total_count,
+    excellent_count,
+    excellence_percentage / 100.0 as excellence_percentage,
+    excellence_rank
+FROM dashboard_data.dashboard_metrics
+ORDER BY place_type, excellence_percentage DESC
 ```
 
-```sql recent_locations
+```sql scatter_data
 SELECT 
-    query,
-    formatted_address,
-    latitude,
-    longitude,
-    timestamp
-FROM maps_location_analysis
-WHERE place_id IS NOT NULL
-ORDER BY timestamp DESC
-LIMIT 50
+    city,
+    place_type_display,
+    total_count,
+    excellence_percentage / 100.0 as excellence_percentage
+FROM dashboard_data.dashboard_metrics
 ```
 
-## About This Pipeline
+```sql city_comparison
+SELECT 
+    city,
+    place_type_display,
+    excellence_percentage / 100.0 as excellence_percentage
+FROM dashboard_data.dashboard_metrics
+ORDER BY city, place_type
+```
 
-This dashboard is powered by a modern data stack:
-- **Google Maps API** for geocoding data
-- **Google Cloud Storage** for data lake storage  
-- **BigQuery** for data warehousing
-- **dbt** for data transformations
-- **Dagster** for orchestration
-- **Evidence** for visualization
+---
 
-The pipeline runs daily to collect fresh geocoding data and update these insights.
-
-*Pipeline Dashboard v1.0*
+**Excellence Definition**: Places rated 4.5+ stars out of total places found  
+**Cities**: Helsinki, Stockholm, Copenhagen, Berlin, London, Amsterdam  
+**Data Source**: Google Area Insights API • Updated automatically

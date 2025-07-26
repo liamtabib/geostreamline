@@ -1,9 +1,9 @@
 appearance:
-    default: dark
-    switcher: true
+  default: dark
+  switcher: true
+
 plugins:
-    components:
-      "@evidence-dev/core-components": {}
-    datasources:
-      "@evidence-dev/motherduck": {}
-      "@evidence-dev/duckdb": {}
+  components:
+    "@evidence-dev/core-components": {}
+  datasources:
+    "@evidence-dev/duckdb": {}
