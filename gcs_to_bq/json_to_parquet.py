@@ -1,12 +1,10 @@
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
 from google.cloud import storage
 from loguru import logger
 import json
 import tempfile
 import os
-from typing import List, Optional
+from typing import Optional
 
 
 def get_latest_json_file(bucket: storage.Bucket, prefix: str = "") -> Optional[storage.Blob]:
@@ -81,6 +79,14 @@ def convert_json_to_parquet(
         client = storage.Client(project=project_id)
         bucket = client.bucket(gcs_bucket)
         
+        # Test bucket access
+        try:
+            bucket.reload()
+        except Exception as e:
+            logger.error(f"Cannot access GCS bucket '{gcs_bucket}': {e}")
+            logger.info("Make sure the bucket exists and you have proper permissions")
+            return None
+        
         # Extract prefix from pattern for searching
         prefix = json_path_pattern.replace("*", "").replace(".json", "")
         
@@ -135,15 +141,15 @@ def convert_json_to_parquet(
                         # Extract count from API response (structure may vary)
                         count = None
                         if isinstance(api_response, dict):
-                            # Try to find count in various possible locations
+                            # Try direct count field first (current structure)
                             if 'count' in api_response:
                                 count = api_response['count']
-                                # Convert string count to integer if needed
                                 if isinstance(count, str):
                                     try:
                                         count = int(count)
                                     except ValueError:
                                         count = None
+                            # Try insights structure (alternative structure)
                             elif 'insights' in api_response:
                                 insights = api_response['insights']
                                 if isinstance(insights, list) and len(insights) > 0:
