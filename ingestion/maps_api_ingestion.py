@@ -29,7 +29,8 @@ HEADERS = {
 }
 
 def load_place_ids():
-    with open('place_ids.json', 'r') as f:
+    place_ids_path = os.path.join(os.path.dirname(__file__), 'place_ids.json')
+    with open(place_ids_path, 'r') as f:
         return json.load(f)
 
 def get_place_count(api_key, place_id, place_type, min_rating=None):
