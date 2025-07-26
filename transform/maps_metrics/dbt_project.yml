@@ -1,6 +1,7 @@
 name: 'maps_metrics'
 version: '1.0.0'
 config-version: 2
+profile: 'maps_metrics'
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]
@@ -16,7 +17,3 @@ clean-targets:
 models:
   maps_metrics:
     +materialized: table
-    staging:
-      +materialized: view
-    marts:
-      +materialized: table

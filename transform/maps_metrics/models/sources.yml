@@ -1,17 +1,19 @@
 version: 2
 
 sources:
-  - name: raw_maps
-    description: Raw Google Maps API data from BigQuery
+  - name: maps_data
+    description: Raw Maps API data from BigQuery
     tables:
       - name: raw_maps_data
-        description: Raw geocoding results from Google Maps API
+        description: Raw ingested Maps API responses
         columns:
-          - name: timestamp
-            description: When the API call was made
-          - name: query
-            description: Original search query
-          - name: place_data
-            description: Structured place information from Maps API
-          - name: api_status
-            description: API response status (OK, ZERO_RESULTS, etc.)
+          - name: ingestion_timestamp
+            description: When the data was processed (nanoseconds since epoch)
+          - name: city
+            description: City name
+          - name: place_type
+            description: Type of place (cafe or restaurant)
+          - name: rating_filter
+            description: Rating filter applied (NULL or 4.5)
+          - name: count
+            description: Number of places found
