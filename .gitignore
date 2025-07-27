@@ -20,8 +20,12 @@ venv/
 env/
 
 # Google Cloud credentials (NEVER commit these)
-*.json
+*creds*.json
+*key*.json
+*service-account*.json
 !place_ids.json
+!package.json
+!package-lock.json
 
 # Data files
 *.duckdb
