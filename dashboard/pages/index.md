@@ -118,26 +118,6 @@ Places rated **4.5+ stars** out of total places found in each city.
     <Column id="value" title="Value"/>
 </DataTable>
 
-```sql city_count
-SELECT COUNT(DISTINCT city) as total_cities
-FROM dashboard_data.dashboard_metrics
-```
-
-```sql total_places
-SELECT SUM(total_count) as total_count
-FROM dashboard_data.dashboard_metrics
-```
-
-```sql total_places
-SELECT SUM(total_count) as total_count
-FROM dashboard_data.dashboard_metrics
-```
-
-```sql cafe_places
-SELECT SUM(total_count) as total_count
-FROM dashboard_data.dashboard_metrics
-WHERE place_type = 'cafe'
-```
 
 ```sql cafe_places
 SELECT SUM(total_count) as total_count
@@ -149,12 +129,6 @@ WHERE place_type = 'cafe'
 SELECT SUM(total_count) as total_count
 FROM dashboard_data.dashboard_metrics
 WHERE place_type = 'restaurant'
-```
-
-```sql avg_excellence
-SELECT AVG(excellence_percentage / 100.0) as avg_excellence_percentage
-FROM dashboard_data.dashboard_metrics
-WHERE excellence_percentage IS NOT NULL
 ```
 
 ```sql avg_excellence_restaurants
@@ -169,11 +143,6 @@ SELECT AVG(excellence_percentage / 100.0) as avg_excellence_percentage
 FROM dashboard_data.dashboard_metrics
 WHERE excellence_percentage IS NOT NULL
 and place_type = 'cafe'
-```
-
-```sql last_updated
-SELECT MAX(readable_timestamp) as readable_timestamp
-FROM dashboard_data.dashboard_metrics
 ```
 
 ```sql cafe_rankings
@@ -206,15 +175,6 @@ SELECT
     excellence_rank
 FROM dashboard_data.dashboard_metrics
 ORDER BY place_type, excellence_percentage DESC
-```
-
-```sql scatter_data
-SELECT 
-    city,
-    place_type_display,
-    total_count,
-    excellence_percentage / 100.0 as excellence_percentage
-FROM dashboard_data.dashboard_metrics
 ```
 
 ```sql city_performance

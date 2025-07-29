@@ -5,6 +5,6 @@
 	export let data;
 </script>
 
-<EvidenceDefaultLayout {data} hideSidebar={true} logo='logo.png' githubRepo='https://github.com/liamtabib/maps-api-pipeline' neverShowQueries={true}>
+<EvidenceDefaultLayout {data} hideSidebar={true} hideHeader={true} neverShowQueries={true}>
 	<slot slot="content" />
 </EvidenceDefaultLayout>

@@ -2,6 +2,58 @@ appearance:
   default: dark
   switcher: true
 
+theme:
+  colorPalettes:
+    default:
+      - "#0d0887"
+      - "#3e049c"
+      - "#6300a7"
+      - "#8606a6"
+      - "#a62098"
+      - "#c03a83"
+      - "#d5546e"
+      - "#e76f5a"
+      - "#f68d45"
+      - "#fdae32"
+      - "#fcd225"
+      - "#f0f921"
+  colorScales:
+    default:
+      - "#0d0887"
+      - "#3e049c"
+      - "#6300a7"
+      - "#8606a6"
+      - "#a62098"
+      - "#c03a83"
+      - "#d5546e"
+      - "#e76f5a"
+      - "#f68d45"
+      - "#fdae32"
+      - "#fcd225"
+      - "#f0f921"
+  colors:
+    primary:
+      light: "#6300a7"
+      dark: "#6300a7"
+    accent:
+      light: "#f68d45"
+      dark: "#f68d45"
+    base:
+      light: "#ffffff"
+      dark: "#000000"
+    info:
+      light: "#0d0887"
+      dark: "#0d0887"
+    warning:
+      light: "#fcd225"
+      dark: "#fcd225"
+    negative:
+      light: "#e76f5a"
+      dark: "#e76f5a"
+    positive:
+      light: "#a62098"
+      dark: "#a62098"
+
 plugins:
   components:
     "@evidence-dev/core-components": {}
