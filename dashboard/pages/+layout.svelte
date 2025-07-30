@@ -5,6 +5,6 @@
 	export let data;
 </script>
 
-<EvidenceDefaultLayout {data} hideSidebar={true} hideHeader={false} neverShowQueries={true}>
+<EvidenceDefaultLayout {data} hideSidebar={true} hideHeader={false} neverShowQueries={true} title="Dashboard">
 	<slot slot="content" />
 </EvidenceDefaultLayout>
