@@ -1,6 +1,6 @@
 -- KPI metrics for dashboard cards
 WITH base_data AS (
-    SELECT * FROM read_csv('/Users/liamtabibzadeh/Documents/hobby/maps-api-pipeline/dashboard/sources/dashboard_data/dashboard_metrics.csv')
+    SELECT * FROM dashboard_metrics
 ),
 metrics AS (
     SELECT 
