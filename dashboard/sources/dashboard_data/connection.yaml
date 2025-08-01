@@ -1,3 +1,4 @@
 name: dashboard_data
 type: duckdb
-filename: 'dashboard_data.duckdb'
+options:
+  filename: dashboard_data.duckdb

@@ -166,23 +166,35 @@ def export_dashboard_data(context: AssetExecutionContext, config: MapsConfig, bi
                 dashboard_dir = os.path.join(os.path.dirname(__file__), "dashboard", "sources", "dashboard_data")
                 os.makedirs(dashboard_dir, exist_ok=True)
                 
-                parquet_path = os.path.join(dashboard_dir, "dashboard_metrics.parquet")
-                empty_df.to_parquet(parquet_path, index=False)
+                duckdb_path = os.path.join(dashboard_dir, "dashboard_data.duckdb")
                 
-                context.log.info(f"Created empty dashboard file at {parquet_path}")
-                return parquet_path
+                # Create empty DuckDB database
+                import duckdb
+                conn = duckdb.connect(duckdb_path)
+                conn.execute("DROP TABLE IF EXISTS dashboard_metrics")
+                conn.execute("CREATE TABLE dashboard_metrics AS SELECT * FROM empty_df")
+                conn.close()
+                
+                context.log.info(f"Created empty DuckDB database at {duckdb_path}")
+                return duckdb_path
             
             # Export to Parquet file in dashboard sources directory
             dashboard_dir = os.path.join(os.path.dirname(__file__), "dashboard", "sources", "dashboard_data")
             os.makedirs(dashboard_dir, exist_ok=True)
             
-            parquet_path = os.path.join(dashboard_dir, "dashboard_metrics.parquet")
-            df.to_parquet(parquet_path, index=False)
+            duckdb_path = os.path.join(dashboard_dir, "dashboard_data.duckdb")
             
-            context.log.info(f"Exported {len(df)} rows to {parquet_path}")
+            # Create/update DuckDB database for Evidence.dev
+            import duckdb
+            conn = duckdb.connect(duckdb_path)
+            conn.execute("DROP TABLE IF EXISTS dashboard_metrics")
+            conn.execute("CREATE TABLE dashboard_metrics AS SELECT * FROM df")
+            conn.close()
+            
+            context.log.info(f"Created DuckDB with {len(df)} rows at {duckdb_path}")
             context.log.info(f"Data includes: {df['city'].nunique()} cities, {df['place_type'].nunique()} place types")
             
-            return parquet_path
+            return duckdb_path
         
     except Exception as e:
         context.log.error(f"Failed to export dashboard data: {str(e)}")

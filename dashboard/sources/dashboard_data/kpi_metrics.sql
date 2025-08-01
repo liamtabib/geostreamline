@@ -18,5 +18,5 @@ SELECT
     total_restaurants,
     avg_cafe_top_rated,
     avg_restaurant_top_rated,
-    STRFTIME(last_updated, '%B %d, %Y') as last_updated_formatted
+    STRFTIME('%B %d, %Y', CAST(last_updated AS TIMESTAMP)) as last_updated_formatted
 FROM metrics
