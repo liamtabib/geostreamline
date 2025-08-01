@@ -29,6 +29,7 @@ env/
 
 # Data files
 *.duckdb
+!dashboard/sources/dashboard_data/dashboard_data.duckdb
 *.wal
 
 # dbt
