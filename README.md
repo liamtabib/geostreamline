@@ -1,242 +1,122 @@
-# Maps API Data Pipeline
+# Geostreamline
 
-A complete data pipeline that ingests café and restaurant data from Google Area Insights API, processes it through Google Cloud Storage, and loads it into BigQuery for analysis.
+**Data engineering project analyzing cafés and restaurants across Northern European cities using Google Maps API.**
 
-## 🏗️ Architecture
+![Architecture](https://via.placeholder.com/800x200/1a1a1a/ffffff?text=Google+Area+Insights+API+→+GCS+→+BigQuery+→+Evidence+Dashboard)
 
-```
-Google Area Insights API → GCS (JSON) → GCS (Parquet) → BigQuery → Evidence Dashboard
-```
+## What This Pipeline Does
 
-## 📊 Data Flow
+Demonstration of a complete data engineering workflow that:
 
-1. **API Ingestion**: Fetches café/restaurant counts for European cities
-2. **GCS Storage**: Raw JSON files with timestamp-based naming
-3. **Data Processing**: Transforms nested JSON to normalized 5-column schema
-4. **BigQuery Loading**: Time-series data for analytics
-5. **Dashboard**: Evidence.dev visualization
+- **Ingests** venue data from Google Maps API for 6 European cities
+- **Processes** raw JSON data into normalized time-series format
+- **Transforms** Using dbt for transformations
+- **Visualizes** insights through an interactive Evidence.dev dashboard
+- **Orchestration** Dagster for event-based triggers
 
-## 🌍 Cities Covered
-
-- Helsinki, Finland
-- Stockholm, Sweden  
-- Copenhagen, Denmark
-- Berlin, Germany
-- London, UK
-- Amsterdam, Netherlands
-
-## 📁 Project Structure
+## Project Structure
 
 ```
-├── ingestion/                 # API data ingestion
-│   ├── maps_api_ingestion.py # Main ingestion script
-│   └── place_ids.json       # City to Place ID mapping
-├── gcs_to_bq/                # Data processing pipeline
-│   ├── json_to_parquet.py   # JSON → Parquet transformation
-│   └── gcs_handler.py       # GCS → BigQuery loading
-├── transform/                # dbt transformations
-│   └── maps_metrics/        # dbt project
-├── dashboard/                # Evidence.dev dashboard
-└── dagster_pipeline.py      # Orchestration
+├── ingestion/                 # API data collection
+│   ├── maps_api_ingestion.py
+│   └── place_ids.json
+├── gcs_to_bq/                # Data processing pipeline  
+│   ├── json_to_parquet.py
+│   └── gcs_handler.py
+├── transform/maps_metrics/   # dbt transformations
+├── dashboard/                # Evidence.dev visualization
+└── dagster_pipeline.py      # Workflow orchestration
 ```
 
-## 🚀 Quick Start
+## Development Setup
 
-### Prerequisites
+### Requirements
 
 - Python 3.12+
 - Google Cloud Project with enabled APIs:
-  - Google Area Insights API
-  - Cloud Storage API  
+  - Area Insights API
+  - Cloud Storage API
   - BigQuery API
 - Service account with appropriate permissions
 
-### Setup
+### Environment Configuration
 
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd maps-pipeline
-   ```
+```bash
+# Clone and install
+git clone <repo-url>
+cd maps-api-pipeline
+uv sync
 
-2. **Install dependencies**
-   ```bash
-   uv sync
-   ```
+# Configure credentials
+cp .env.example .env
+```
 
-3. **Configure environment**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your credentials
-   ```
+Required environment variables:
+```bash
+GOOGLE_MAPS_API_KEY=your_api_key
+GCS_BUCKET_NAME=your_bucket_name  
+GCP_PROJECT_ID=your_project_id
+GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json
+```
 
-4. **Required environment variables**
-   ```bash
-   GOOGLE_MAPS_API_KEY=your_api_key
-   GCS_BUCKET_NAME=your_bucket_name  
-   GCP_PROJECT_ID=your_project_id
-   GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json
-   ```
+## Pipeline Stages
 
-### Run Pipeline
+### 1. Ingestion 🐍
 
-1. **Ingest data from API**
-   ```bash
-   cd ingestion
-   uv run python maps_api_ingestion.py
-   ```
+Fetch venue counts from Google Maps API:
 
-2. **Process and load to BigQuery**
-   ```bash
-   uv run python -c "
-   from gcs_to_bq.json_to_parquet import convert_json_to_parquet
-   from gcs_to_bq.gcs_handler import load_gcs_to_bq
-   import os
-   
-   # Convert latest JSON to Parquet
-   parquet_path = convert_json_to_parquet(
-       gcs_bucket=os.getenv('GCS_BUCKET_NAME'),
-       json_path_pattern='',
-       parquet_output_path='processed/maps_data.parquet',
-       project_id=os.getenv('GCP_PROJECT_ID')
-   )
-   
-   # Load to BigQuery
-   load_gcs_to_bq(
-       gcs_path=parquet_path,
-       project_id=os.getenv('GCP_PROJECT_ID'),
-       dataset_id='maps_data',
-       table_id='raw_maps_data'
-   )
-   "
-   ```
+```bash
+cd ingestion
+uv run python maps_api_ingestion.py
+```
 
-## 📊 Data Schema
+This creates timestamped JSON files in GCS with venue counts for each city/category combination.
 
-The pipeline produces a clean 5-column BigQuery table:
+### 2. Transformation
+
+Convert JSON to normalized BigQuery schema:
+
+```bash
+uv run python dagster_pipeline.py
+```
+
+The pipeline handles:
+- JSON → Parquet conversion
+- Data validation and normalization  
+- Incremental processing (only new files)
+- BigQuery loading with time-series preservation
+
+### 3. Visualization
+
+**Live Dashboard**: https://www.geostreamline.dev/
+
+Launch the Evidence.dev dashboard locally:
+
+```bash
+cd dashboard
+npm install
+npm run dev
+```
+
+SQL-based dashboard showing cafés and restaurant counts and quality comparison.
+
+## Data Schema
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `ingestion_timestamp` | INTEGER | When the data was processed |
 | `city` | STRING | City name (Helsinki, Stockholm, etc.) |
 | `place_type` | STRING | "cafe" or "restaurant" |
-| `rating_filter` | FLOAT | NULL for all places, 4.5 for excellent places |
-| `count` | INTEGER | Number of places found |
+| `rating_filter` | FLOAT | Quality filter (4.5+ or NULL for all venues) |
+| `count` | INTEGER | Number of venues found |
+| `ingestion_timestamp` | INTEGER | When data was collected |
 
-## 🔄 Pipeline Features
+## Cities Covered
 
-- **Incremental Processing**: Only processes new API data files
-- **Duplicate Prevention**: File tracking prevents reprocessing
-- **Time Series**: Maintains historical data across runs
-- **Error Handling**: Skips cities with API errors
-- **Data Quality**: Validates and normalizes all data
+Helsinki • Stockholm • Copenhagen • Berlin • London • Amsterdam
 
-## 🏢 BigQuery Output
+## Technical Stack
 
-Example data structure:
-```sql
-SELECT * FROM `your-project.maps_data.raw_maps_data`
-ORDER BY city, place_type, rating_filter;
-```
-
-| city | place_type | rating_filter | count | ingestion_timestamp |
-|------|------------|---------------|-------|-------------------|
-| Helsinki | cafe | NULL | 941 | 1753460486116238000 |
-| Helsinki | cafe | 4.5 | 315 | 1753460486116238000 |
-| Helsinki | restaurant | NULL | 3933 | 1753460486116238000 |
-| Helsinki | restaurant | 4.5 | 1099 | 1753460486116238000 |
-
-## 🛠️ Development
-
-### Project Dependencies
-
-- **Data Processing**: pandas, pyarrow
-- **Cloud Integration**: google-cloud-storage, google-cloud-bigquery
-- **Orchestration**: dagster
-- **Analytics**: dbt-core, dbt-bigquery
-- **Dashboard**: Evidence.dev
-- **Utilities**: python-dotenv, loguru
-
-### Code Style
-
-- **Linting**: Ruff
-- **Type Checking**: Python type hints
-- **Formatting**: Auto-formatted with Ruff
-
-## 📈 Analytics & Visualization
-
-The pipeline supports rich analytics through:
-
-1. **dbt Transformations**: Staging and mart models
-2. **Evidence Dashboard**: Interactive visualizations
-3. **Time Series Analysis**: Track changes over time
-4. **City Comparisons**: Cross-city analytics
-
-### Evidence Dashboard Kiosk Mode
-
-The dashboard is configured for clean kiosk display with all Evidence.dev development UI elements stripped away.
-
-#### Global Layout Override
-
-The `dashboard/pages/+layout.svelte` file globally hides all dev-time UI:
-
-```svelte
-<EvidenceDefaultLayout
-  {data}
-  hideSidebar={true}
-  hideHeader={true}
-  neverShowQueries={true}
->
-  <slot slot="content" />
-</EvidenceDefaultLayout>
-```
-
-#### Dashboard Development
-
-```bash
-# Navigate to dashboard directory
-cd dashboard
-
-# Install dependencies
-npm install
-
-# Start development server (clean kiosk mode)
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-```
-
-#### Production Deployment
-
-1. Build the static site: `npm run build`
-2. Serve the `/build` directory using any static web server
-3. **Never** run `evidence dev` in production
-
-The build output is completely static and contains no dev-time UI elements.
-
-## 🔒 Security
-
-- ✅ Environment variables for all secrets
-- ✅ Service account authentication
-- ✅ `.gitignore` prevents credential commits
-- ✅ Minimal required permissions
-
-## 📝 License
-
-This project is licensed under the MIT License.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📞 Support
-
-For questions or issues, please open a GitHub issue.
+- **Orchestration**: Dagster
+- **Transformations & Data Processing**: BigQuery & dbt
+- **Storage**: Google Cloud Storage 
+- **Visualization**: Evidence.dev

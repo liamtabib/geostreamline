@@ -5,6 +5,6 @@
 	export let data;
 </script>
 
-<EvidenceDefaultLayout {data} hideSidebar={true} hideHeader={false} neverShowQueries={true} title="Dashboard">
+<EvidenceDefaultLayout {data} logo="/new_logo.svg" githubRepo="https://github.com/liamtabib/geostreamline">
 	<slot slot="content" />
 </EvidenceDefaultLayout>
