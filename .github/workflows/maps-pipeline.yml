@@ -6,13 +6,13 @@ permissions:
 on:
   workflow_dispatch:
     inputs:
-      gcs_path_pattern:
-        description: 'GCS path pattern for input data'
+      debug_mode:
+        description: 'Enable debug logging'
         required: false
-        default: 'maps_data/*/*.parquet'
-        type: string
+        default: false
+        type: boolean
   schedule:
-    - cron: '0 6 * * *'  # Daily at 6 AM
+    - cron: '0 6 * * *'  # Daily at 6 AM UTC
     
 jobs:
   run-maps-pipeline:
@@ -31,7 +31,8 @@ jobs:
         
       - name: Install dependencies
         run: |
-          uv sync
+          uv sync --all-extras
+          uv add dagster-webserver loguru
           
       - id: 'auth'
         name: 'Authenticate to GCP'
@@ -39,13 +40,60 @@ jobs:
         with:
           credentials_json: '${{ secrets.GCP_SECRETS }}'
 
+      - name: Generate dbt manifest
+        env:
+          GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
+        run: |
+          cd transform/maps_metrics
+          uv run dbt compile
+          
       - name: Run Dagster pipeline
         env:
           GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           GCS_BUCKET: ${{ secrets.GCS_BUCKET }}
-          GCS_PATH_PATTERN: ${{ github.event.inputs.gcs_path_pattern || 'maps_data/*/*.parquet' }}
+          GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET }}
+          JSON_PATH_PATTERN: "maps_data/*/maps_data.json"
+          PARQUET_OUTPUT_PATH: "processed/maps_data.parquet"
           BQ_DATASET: maps_data
           BQ_TABLE: raw_maps_data
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
+          DAGSTER_HOME: ${{ github.workspace }}/.dagster
         run: |
-          uv run dagster job execute --job=maps_pipeline
+          mkdir -p .dagster
+          uv run dagster asset materialize -f dagster_pipeline.py --select maps_pipeline_job
+          
+      - name: Upload pipeline logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dagster-logs-${{ github.run_id }}
+          path: .dagster/logs/
+          retention-days: 7
+          
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_body = `
+            ## 🚨 Maps Pipeline Failed
+            
+            **Run:** ${{ github.run_id }}
+            **Commit:** ${{ github.sha }}
+            **Triggered by:** ${{ github.event_name }}
+            **Time:** ${{ github.event.head_commit.timestamp }}
+            
+            Please check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+            `;
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Maps Pipeline Failed - Run ${{ github.run_id }}`,
+              body: issue_body,
+              labels: ['pipeline-failure', 'urgent']
+            });

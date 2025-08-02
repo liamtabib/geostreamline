@@ -7,6 +7,7 @@ readme = "README.md"
 requires-python = "==3.12.*"
 dependencies = [
     "dagster>=1.8.0",
+    "dagster-webserver>=1.8.0",
     "dagster-gcp>=0.24.0",
     "dagster-dbt>=0.24.0",
     "duckdb==1.2.0",
@@ -23,6 +24,7 @@ dependencies = [
     "dbt-duckdb==1.9.0",
     "requests>=2.31.0",
     "dbt-bigquery>=1.10.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [tool.pytest.ini_options]

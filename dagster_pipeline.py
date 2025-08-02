@@ -1,5 +1,9 @@
 import os
+import json
+import requests
+from datetime import datetime
 from dotenv import load_dotenv
+from google.cloud import storage
 
 # Load environment variables from .env file
 load_dotenv()
@@ -48,10 +52,119 @@ class MapsConfig(Config):
     parquet_output_path: str = os.getenv("PARQUET_OUTPUT_PATH", "processed/maps_data.parquet")
     bq_dataset: str = os.getenv("BQ_DATASET", "maps_data")
     bq_table: str = os.getenv("BQ_TABLE", "raw_maps_data")
+    maps_api_key: str = os.getenv("GOOGLE_MAPS_API_KEY", "")
+
+
+@asset(
+    description="Fetch Maps data from Google Area Insights API",
+    group_name="ingestion"
+)
+def maps_api_ingestion(context: AssetExecutionContext, config: MapsConfig) -> str:
+    """Fetch venue data from Google Area Insights API and upload to GCS"""
+    try:
+        if not config.maps_api_key:
+            raise ValueError("GOOGLE_MAPS_API_KEY not found in environment variables")
+        
+        # Load place IDs
+        place_ids_path = os.path.join(os.path.dirname(__file__), 'ingestion', 'place_ids.json')
+        with open(place_ids_path, 'r') as f:
+            place_ids = json.load(f)
+        
+        context.log.info(f"Starting Maps API ingestion for {len(place_ids)} cities")
+        
+        # API configuration
+        endpoint = "https://areainsights.googleapis.com/v1:computeInsights"
+        headers = {
+            "Content-Type": "application/json",
+            "X-Goog-FieldMask": "*"
+        }
+        
+        def get_place_count(place_id, place_type, min_rating=None):
+            filter_config = {
+                "locationFilter": {
+                    "region": {
+                        "place": f"places/{place_id}"
+                    }
+                },
+                "typeFilter": {
+                    "includedTypes": [place_type]
+                }
+            }
+            
+            if min_rating:
+                filter_config["ratingFilter"] = {
+                    "minRating": min_rating
+                }
+            
+            body = {
+                "insights": ["INSIGHT_COUNT"],
+                "filter": filter_config
+            }
+
+            resp = requests.post(
+                endpoint,
+                params={"key": config.maps_api_key},
+                headers=headers,
+                json=body,
+                timeout=10
+            )
+            resp.raise_for_status()
+            return resp.json()
+        
+        # Fetch data for all cities
+        results = {}
+        for city, place_id in place_ids.items():
+            context.log.info(f"Processing {city}...")
+            city_results = {}
+            
+            try:
+                context.log.info(f"  Fetching cafes for {city}...")
+                cafe_result = get_place_count(place_id, "cafe")
+                city_results["cafes"] = cafe_result
+                
+                context.log.info(f"  Fetching excellent cafes for {city}...")
+                excellent_cafe_result = get_place_count(place_id, "cafe", 4.5)
+                city_results["excellent_cafes"] = excellent_cafe_result
+                
+                context.log.info(f"  Fetching restaurants for {city}...")
+                restaurant_result = get_place_count(place_id, "restaurant")
+                city_results["restaurants"] = restaurant_result
+                
+                context.log.info(f"  Fetching excellent restaurants for {city}...")
+                excellent_restaurant_result = get_place_count(place_id, "restaurant", 4.5)
+                city_results["excellent_restaurants"] = excellent_restaurant_result
+                
+                results[city] = city_results
+                context.log.info(f"✓ {city} completed")
+            except Exception as e:
+                context.log.error(f"✗ {city} failed: {e}")
+                results[city] = {"error": str(e)}
+        
+        # Upload to GCS with date-based folder structure
+        client = storage.Client(project=config.gcp_project)
+        bucket = client.bucket(config.gcs_bucket)
+        
+        # Use date-based path structure matching current pattern
+        date_str = datetime.now().strftime('%Y-%m-%d')
+        blob_name = f"maps_data/{date_str}/maps_data.json"
+        
+        blob = bucket.blob(blob_name)
+        blob.upload_from_string(json.dumps(results, indent=2), content_type='application/json')
+        
+        gcs_path = f"gs://{config.gcs_bucket}/{blob_name}"
+        context.log.info(f"✓ Uploaded Maps data to {gcs_path}")
+        context.log.info(f"Processed {len([r for r in results.values() if 'error' not in r])} cities successfully")
+        
+        return gcs_path
+        
+    except Exception as e:
+        context.log.error(f"Failed to fetch Maps data: {str(e)}")
+        raise
 
 
 @asset(
     description="Convert latest JSON file to Parquet format (incremental)",
+    deps=[maps_api_ingestion],
     group_name="preprocessing"
 )
 def json_to_parquet_conversion(context: AssetExecutionContext, config: MapsConfig) -> str:
@@ -216,8 +329,8 @@ def evidence_dashboard(context: AssetExecutionContext, export_dashboard_data: st
 # Define the main job
 maps_pipeline_job = define_asset_job(
     name="maps_pipeline",
-    selection=[json_to_parquet_conversion, bq_maps_data, maps_dbt_assets, export_dashboard_data, evidence_dashboard],
-    description="Google Maps data pipeline from JSON to dashboard"
+    selection=[maps_api_ingestion, json_to_parquet_conversion, bq_maps_data, maps_dbt_assets, export_dashboard_data, evidence_dashboard],
+    description="Complete Google Maps data pipeline from API ingestion to dashboard"
 )
 
 # Define schedule (daily at 6 AM)
@@ -229,7 +342,7 @@ maps_pipeline_schedule = ScheduleDefinition(
 
 # Resources
 defs = Definitions(
-    assets=[json_to_parquet_conversion, bq_maps_data, maps_dbt_assets, export_dashboard_data, evidence_dashboard],
+    assets=[maps_api_ingestion, json_to_parquet_conversion, bq_maps_data, maps_dbt_assets, export_dashboard_data, evidence_dashboard],
     jobs=[maps_pipeline_job],
     schedules=[maps_pipeline_schedule],
     resources={
