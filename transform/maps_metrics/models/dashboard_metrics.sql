@@ -42,7 +42,7 @@ SELECT
     ELSE 0 
   END AS excellence_percentage,
   -- Add readable timestamp for dashboard
-  TIMESTAMP_SECONDS(DIV(ingestion_timestamp, 1000000000)) as readable_timestamp,
+  ingestion_timestamp as readable_timestamp,
   -- Add derived fields for easier dashboard filtering
   CASE 
     WHEN place_type = 'cafe' THEN 'Cafes'

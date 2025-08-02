@@ -257,7 +257,7 @@ def export_dashboard_data(context: AssetExecutionContext, config: MapsConfig, bi
                 excellence_rank,
                 readable_timestamp,
                 ingestion_timestamp
-            FROM `{config.gcp_project}.{config.bq_dataset}.dashboard_metrics`
+            FROM `{config.gcp_project}.{config.bq_dataset}_dev.dashboard_metrics`
             ORDER BY place_type, excellence_percentage DESC
             """
             
