@@ -225,6 +225,7 @@ def bq_maps_data(context: AssetExecutionContext, config: MapsConfig, json_to_par
 @dbt_assets(
     manifest=os.path.join(os.path.dirname(__file__), "transform", "maps_metrics", "target", "manifest.json"),
     dagster_dbt_translator=CustomDagsterDbtTranslator(),
+    deps=[bq_maps_data],
 )
 def maps_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResource):
     """dbt assets for transforming Maps data"""
