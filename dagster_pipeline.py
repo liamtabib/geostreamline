@@ -34,8 +34,9 @@ class CustomDagsterDbtTranslator(DagsterDbtTranslator):
         # add dependency on our bq_maps_data asset
         deps = super().get_deps_asset_keys(dbt_resource_props)
         
-        # Always add dependency on bq_maps_data for any model that uses maps_data source
-        if dbt_resource_props.get("resource_type") == "model":
+        # For the dashboard_metrics model specifically, add dependency on bq_maps_data
+        if (dbt_resource_props.get("resource_type") == "model" and 
+            dbt_resource_props.get("name") == "dashboard_metrics"):
             deps.add(AssetKey(["bq_maps_data"]))
         
         return deps
@@ -327,7 +328,7 @@ maps_pipeline_job = define_asset_job(
     name="maps_pipeline",
     selection=[maps_api_ingestion, json_to_parquet_conversion, bq_maps_data, maps_dbt_assets, export_dashboard_data, evidence_dashboard],
     description="Complete Google Maps data pipeline from API ingestion to dashboard",
-    config={"execution": {"config": {"multiprocess": {"max_concurrent": 1}}}}
+    config={"execution": {"config": {"in_process": {}}}}
 )
 
 # Define schedule (daily at 6 AM)

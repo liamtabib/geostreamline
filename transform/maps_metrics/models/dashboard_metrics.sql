@@ -12,10 +12,11 @@ WITH latest_data AS (
     place_type,
     rating_filter,
     count
-  FROM {{ source('maps_data', 'raw_maps_data') }}
+  FROM {{ source('maps_data', 'raw_maps_data') }} raw
   WHERE ingestion_timestamp = (
     SELECT MAX(ingestion_timestamp) 
-    FROM {{ source('maps_data', 'raw_maps_data') }}
+    FROM {{ source('maps_data', 'raw_maps_data') }} inner_raw
+    WHERE inner_raw.city = raw.city
   )
 ),
 

@@ -18,4 +18,4 @@ maps_metrics:
       location: US
       timeout_seconds: 300
       
-  target: prod
+  target: dev
