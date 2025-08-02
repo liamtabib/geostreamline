@@ -25,10 +25,6 @@ from gcs_to_bq.json_to_parquet import convert_json_to_parquet
 
 
 class CustomDagsterDbtTranslator(DagsterDbtTranslator):
-    def get_asset_key(self, dbt_resource_props):
-        # Keep default behavior for models
-        return super().get_asset_key(dbt_resource_props)
-    
     def get_deps_asset_keys(self, dbt_resource_props):
         # For models that depend on the maps_data.raw_maps_data source,
         # add dependency on our bq_maps_data asset
@@ -254,7 +250,7 @@ def export_dashboard_data(context: AssetExecutionContext, config: MapsConfig, bi
                 excellence_rank,
                 readable_timestamp,
                 ingestion_timestamp
-            FROM `{config.gcp_project}.{config.bq_dataset}_dev.dashboard_metrics`
+            FROM `{config.gcp_project}.{config.bq_dataset}.dashboard_metrics`
             ORDER BY place_type, excellence_percentage DESC
             """
             

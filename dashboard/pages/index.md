@@ -32,7 +32,7 @@ select * from dashboard_data.kpi_metrics
 <BigValue 
     data={kpi_data} 
     value=last_updated_formatted
-    title="Last Updated"
+    title="Data last updated on"
 />
 
 <BigValue 
