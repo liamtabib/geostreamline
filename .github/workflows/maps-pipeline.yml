@@ -2,6 +2,7 @@ name: Google Maps Data Pipeline
 
 permissions:
   id-token: write
+  contents: write
 
 on:
   workflow_dispatch:
@@ -65,6 +66,23 @@ jobs:
         run: |
           mkdir -p .dagster
           uv run dagster job execute -f dagster_pipeline.py -j maps_pipeline
+          
+      - name: Commit updated dashboard data
+        run: |
+          # Configure git identity for automated commits
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Check if DuckDB file was modified
+          if git diff --exit-code dashboard/sources/dashboard_data/dashboard_data.duckdb > /dev/null; then
+            echo "No changes to dashboard data, skipping commit"
+          else
+            echo "Dashboard data updated, committing changes"
+            git add dashboard/sources/dashboard_data/dashboard_data.duckdb
+            git commit -m "chore: update dashboard data - automated pipeline run ${{ github.run_id }}"
+            git push origin main
+            echo "Dashboard data committed and pushed successfully"
+          fi
           
       - name: Upload pipeline logs
         if: always()
