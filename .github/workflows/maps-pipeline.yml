@@ -64,7 +64,7 @@ jobs:
           DAGSTER_HOME: ${{ github.workspace }}/.dagster
         run: |
           mkdir -p .dagster
-          uv run dagster asset materialize -f dagster_pipeline.py --select maps_pipeline_job
+          uv run dagster job execute -f dagster_pipeline.py -j maps_pipeline
           
       - name: Upload pipeline logs
         if: always()
