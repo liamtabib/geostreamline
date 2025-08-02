@@ -20,7 +20,7 @@ def get_latest_json_file(bucket: storage.Bucket, prefix: str = "") -> Optional[s
     """
     json_files = []
     for blob in bucket.list_blobs(prefix=prefix):
-        if blob.name.endswith('.json') and 'cafe_restaurant_data_' in blob.name:
+        if blob.name.endswith('.json') and ('cafe_restaurant_data_' in blob.name or 'maps_data.json' in blob.name):
             json_files.append(blob)
     
     if not json_files:
@@ -28,14 +28,23 @@ def get_latest_json_file(bucket: storage.Bucket, prefix: str = "") -> Optional[s
         return None
     
     def extract_timestamp(blob_name: str) -> str:
-        """Extract timestamp from cafe_restaurant_data_20250125_143022.json"""
+        """Extract timestamp from cafe_restaurant_data_20250125_143022.json or maps_data/2025-08-02/maps_data.json"""
         try:
-            # Split by underscore and get last two parts: ['20250125', '143022.json']
-            parts = blob_name.split('_')
-            if len(parts) >= 3:
-                date_part = parts[-2]  # 20250125
-                time_part = parts[-1].replace('.json', '')  # 143022
-                return f"{date_part}_{time_part}"
+            if 'cafe_restaurant_data_' in blob_name:
+                # Old format: cafe_restaurant_data_20250125_143022.json
+                parts = blob_name.split('_')
+                if len(parts) >= 3:
+                    date_part = parts[-2]  # 20250125
+                    time_part = parts[-1].replace('.json', '')  # 143022
+                    return f"{date_part}_{time_part}"
+            elif 'maps_data' in blob_name:
+                # New format: maps_data/2025-08-02/maps_data.json
+                # Extract date from path: maps_data/2025-08-02/maps_data.json -> 2025-08-02
+                import re
+                date_match = re.search(r'/(\d{4}-\d{2}-\d{2})/', blob_name)
+                if date_match:
+                    date_str = date_match.group(1).replace('-', '')  # 20250802
+                    return f"{date_str}_000000"  # Use 000000 as time since we don't have specific time
             return "00000000_000000"  # fallback for malformed names
         except:
             return "00000000_000000"
@@ -88,7 +97,8 @@ def convert_json_to_parquet(
             return None
         
         # Extract prefix from pattern for searching
-        prefix = json_path_pattern.replace("*", "").replace(".json", "")
+        # Handle patterns like "maps_data/*/maps_data.json" -> "maps_data/"
+        prefix = json_path_pattern.split("*")[0] if "*" in json_path_pattern else json_path_pattern.replace(".json", "")
         
         # Find the latest JSON file
         latest_json_file = get_latest_json_file(bucket, prefix)
