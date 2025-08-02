@@ -326,7 +326,8 @@ def evidence_dashboard(context: AssetExecutionContext, export_dashboard_data: st
 maps_pipeline_job = define_asset_job(
     name="maps_pipeline",
     selection=[maps_api_ingestion, json_to_parquet_conversion, bq_maps_data, maps_dbt_assets, export_dashboard_data, evidence_dashboard],
-    description="Complete Google Maps data pipeline from API ingestion to dashboard"
+    description="Complete Google Maps data pipeline from API ingestion to dashboard",
+    config={"execution": {"config": {"multiprocess": {"max_concurrent": 1}}}}
 )
 
 # Define schedule (daily at 6 AM)
