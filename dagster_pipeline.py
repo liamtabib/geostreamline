@@ -34,13 +34,9 @@ class CustomDagsterDbtTranslator(DagsterDbtTranslator):
         # add dependency on our bq_maps_data asset
         deps = super().get_deps_asset_keys(dbt_resource_props)
         
-        # Check if this model uses the raw_maps_data source
+        # Always add dependency on bq_maps_data for any model that uses maps_data source
         if dbt_resource_props.get("resource_type") == "model":
-            depends_on = dbt_resource_props.get("depends_on", {})
-            nodes = depends_on.get("nodes", [])
-            for node in nodes:
-                if "source.maps_metrics.maps_data.raw_maps_data" in node:
-                    deps.add(AssetKey(["bq_maps_data"]))
+            deps.add(AssetKey(["bq_maps_data"]))
         
         return deps
 
@@ -225,7 +221,6 @@ def bq_maps_data(context: AssetExecutionContext, config: MapsConfig, json_to_par
 @dbt_assets(
     manifest=os.path.join(os.path.dirname(__file__), "transform", "maps_metrics", "target", "manifest.json"),
     dagster_dbt_translator=CustomDagsterDbtTranslator(),
-    deps=[bq_maps_data],
 )
 def maps_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResource):
     """dbt assets for transforming Maps data"""
